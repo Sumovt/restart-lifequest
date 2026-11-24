@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="重新出發" />
+  <meta name="theme-color" content="#0f0f1a" />
+  <link rel="manifest" href="manifest.json" />
+  <title>重新出發 · LifeQuest</title>
+  <style>
+    :root {
+      --bg: #0d0d14;
+      --card: #16161f;
+      --card2: #1c1c28;
+      --border: #2a2a3a;
+      --text: #e8e6e3;
+      --muted: #8b8798;
+      --accent: #e8b86d;
+      --xp: #7c9cff;
+      --green: #5ddea0;
+      --red: #ff6b7a;
+      --purple: #b794f6;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang TC", "Helvetica Neue", sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding-bottom: 72px;
+    }
+    .app { max-width: 480px; margin: 0 auto; }
+    .topbar {
+      position: sticky; top: 0; z-index: 50;
+      background: rgba(13,13,20,0.92); backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      padding: 10px 14px; display: flex; align-items: center; gap: 10px;
+    }
+    .topbar h1 { font-size: 15px; font-weight: 700; flex: 1; letter-spacing: 0.5px; }
+    .topbar .lvl { background: var(--accent); color: #1a1208; font-weight: 800; font-size: 12px; padding: 3px 10px; border-radius: 20px; }
+    .page { display: none; padding: 14px; }
+    .page.active { display: block; }
+    .char-card {
+      background: linear-gradient(160deg, var(--card) 0%, var(--card2) 100%);
+      border: 1px solid var(--border); border-radius: 18px; padding: 18px;
+      margin-bottom: 16px;
+    }
+    .char-top { display: flex; gap: 14px; align-items: center; margin-bottom: 14px; }
+    .avatar {
+      width: 72px; height: 72px; border-radius: 50%;
+      background: var(--card2); border: 3px solid var(--accent);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 36px; cursor: pointer; flex-shrink: 0;
+    }
+    .char-meta { flex: 1; min-width: 0; }
+    .char-name { font-size: 18px; font-weight: 800; cursor: pointer; }
+    .char-stats { display: flex; gap: 12px; margin-top: 6px; font-size: 12px; color: var(--muted); }
+    .char-stats strong { color: var(--accent); font-size: 14px; }
+    .overall-xp { margin-top: 10px; }
+    .xp-label { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-bottom: 4px; }
+    .xp-track { height: 8px; background: #0a0a10; border-radius: 4px; overflow: hidden; }
+    .xp-fill { height: 100%; background: linear-gradient(90deg, var(--xp), #a78bfa); border-radius: 4px; transition: width 0.5s; }
+    .section-h {
+      font-size: 12px; font-weight: 700; color: var(--muted);
+      text-transform: uppercase; letter-spacing: 1px;
+      margin: 18px 0 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-h::after { content: ""; flex: 1; height: 1px; background: var(--border); }
+    .skills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .skill-card {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px; cursor: pointer;
+    }
+    .skill-head { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+    .skill-emoji { font-size: 22px; }
+    .skill-name { font-size: 13px; font-weight: 700; flex: 1; }
+    .skill-lv { font-size: 11px; color: var(--accent); font-weight: 700; }
+    .skill-bar { height: 6px; background: #0a0a10; border-radius: 3px; overflow: hidden; }
+    .skill-fill { height: 100%; border-radius: 3px; transition: width 0.4s; }
+    .quest-item {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 12px 14px; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .quest-item.done { opacity: 0.55; border-color: var(--green); }
+    .quest-item.done .q-check { background: var(--green); border-color: var(--green); color: #0d0d14; }
+    .q-check {
+      width: 26px; height: 26px; border-radius: 50%;
+      border: 2px solid var(--border); flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px; cursor: pointer;
+    }
+    .q-info { flex: 1; min-width: 0; }
+    .q-title { font-size: 14px; font-weight: 600; }
+    .q-meta { font-size: 11px; color: var(--muted); margin-top: 2px; }
+    .q-xp { font-size: 12px; font-weight: 700; color: var(--xp); white-space: nowrap; }
+    .btn-row { display: flex; gap: 8px; margin: 12px 0; flex-wrap: wrap; }
+    .btn {
+      background: var(--card2); border: 1px solid var(--border);
+      color: var(--text); padding: 8px 14px; border-radius: 10px;
+      font-size: 13px; font-weight: 600; cursor: pointer;
+    }
+    .btn.primary { background: var(--accent); color: #1a1208; border-color: var(--accent); }
+    .btn.ghost { background: transparent; }
+    .today-progress {
+      display: flex; align-items: center; gap: 16px;
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 14px; padding: 14px; margin-bottom: 14px;
+    }
+    .ring-wrap { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+    .ring-wrap svg { transform: rotate(-90deg); }
+    .ring-bg { fill: none; stroke: #0a0a10; stroke-width: 6; }
+    .ring-fg { fill: none; stroke: var(--green); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 0.5s; }
+    .ring-text {
+      position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 800;
+    }
+    .ach-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+    .ach {
+      background: var(--card); border: 1px solid var(--border);
+      border-radius: 12px; padding: 12px 8px; text-align: center;
+      opacity: 0.3;
+    }
+    .ach.unlocked { opacity: 1; border-color: var(--accent); }
+    .ach-icon { font-size: 26px; margin-bottom: 4px; }
+    .ach-name { font-size: 10px; font-weight: 600; color: var(--muted); }
+    .ach.unlocked .ach-name { color: var(--accent); }
+    .log-item {
+      display: flex; gap: 10px; padding: 10px 0;
+      border-bottom: 1px solid var(--border); font-size: 13px;
+    }
+    .log-date { color: var(--muted); width: 70px; flex-shrink: 0; font-size: 11px; }
+    .log-xp { color: var(--xp); font-weight: 700; margin-left: auto; }
+    .overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+      z-index: 200; display: flex; align-items: flex-end; justify-content: center;
+      opacity: 0; pointer-events: none; transition: opacity 0.25s;
+    }
+    .overlay.show { opacity: 1; pointer-events: auto; }
+    .sheet {
+      background: var(--card); border-radius: 20px 20px 0 0;
+      width: 100%; max-width: 480px; max-height: 80vh; overflow-y: auto;
+      padding: 20px 16px 32px; transform: translateY(40px); transition: transform 0.25s;
+    }
+    .overlay.show .sheet { transform: translateY(0); }
+    .sheet-title { font-size: 16px; font-weight: 800; margin-bottom: 14px; }
+    .avatar-pick { display: flex; flex-wrap: wrap; gap: 10px; }
+    .avatar-opt {
+      width: 52px; height: 52px; border-radius: 50%;
+      background: var(--card2); border: 2px solid var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 26px; cursor: pointer;
+    }
+    .avatar-opt.sel { border-color: var(--accent); }
+    .quest-pick-item {
+      display: flex; align-items: center; gap: 10px;
+      padding: 10px; border-radius: 10px; cursor: pointer;
+      border: 1px solid var(--border); margin-bottom: 6px;
+    }
+    .quest-pick-item.on { background: rgba(232,184,109,0.1); border-color: var(--accent); }
+    .bnav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: rgba(13,13,20,0.95); backdrop-filter: blur(12px);
+      border-top: 1px solid var(--border);
+      display: flex; justify-content: space-around;
+      padding: 8px 0 max(8px, env(safe-area-inset-bottom));
+      z-index: 100;
+    }
+    .bnav button {
+      background: none; border: none; color: var(--muted);
+      font-size: 10px; display: flex; flex-direction: column; align-items: center;
+      gap: 2px; cursor: pointer; padding: 4px 10px;
+    }
+    .bnav button.on { color: var(--accent); }
+    .bnav .ic { font-size: 20px; }
+    .toast {
+      position: fixed; top: 60px; left: 50%; transform: translateX(-50%) translateY(-12px);
+      background: var(--accent); color: #1a1208; padding: 10px 18px;
+      border-radius: 12px; font-weight: 700; font-size: 13px;
+      opacity: 0; pointer-events: none; transition: all 0.3s; z-index: 300;
+      white-space: nowrap;
+    }
+    .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+    input, select {
+      background: var(--card2); border: 1px solid var(--border);
+      color: var(--text); border-radius: 10px; padding: 10px 12px;
+      font-size: 14px; font-family: inherit; width: 100%;
+    }
+    .empty { text-align: center; color: var(--muted); padding: 30px 10px; font-size: 13px; }
+  </style>
+</head>
+<body>
+<div class="app">
+  <div class="topbar">
+    <h1>重新出發 · LifeQuest</h1>
+    <div class="lvl" id="topLevel">Lv.1</div>
+  </div>
+  <div class="page active" id="page-char">
+    <div class="char-card">
+      <div class="char-top">
+        <div class="avatar" id="avatarBtn" onclick="openAvatarPicker()">🐣</div>
+        <div class="char-meta">
+          <div class="char-name" id="charName" onclick="editName()">冒險者</div>
+          <div class="char-stats">
+            <span>總XP <strong id="totalXP">0</strong></span>
+            <span>任務 <strong id="totalQuests">0</strong></span>
+            <span>連續 <strong id="streak">0</strong>天</span>
+          </div>
+        </div>
+      </div>
+      <div class="overall-xp">
+        <div class="xp-label"><span>整體等級</span><span id="overallXPText">0 / 100</span></div>
+        <div class="xp-track"><div class="xp-fill" id="overallXPFill" style="width:0%"></div></div>
+      </div>
+    </div>
+    <div class="section-h">五大技能</div>
+    <div class="skills-grid" id="skillsGrid"></div>
+  </div>
+  <div class="page" id="page-daily">
+    <div class="today-progress">
+      <div class="ring-wrap">
+        <svg width="64" height="64" viewBox="0 0 64 64">
+          <circle class="ring-bg" cx="32" cy="32" r="26"/>
+          <circle class="ring-fg" id="ringFg" cx="32" cy="32" r="26" stroke-dasharray="163.36" stroke-dashoffset="163.36"/>
+        </svg>
+        <div class="ring-text" id="ringText">0%</div>
+      </div>
+      <div>
+        <div style="font-weight:700;font-size:15px">今日任務</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px" id="todayCount">0 / 0 完成</div>
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn primary" onclick="openAddQuest()">＋ 加入任務</button>
+      <button class="btn" onclick="randomBoard()">🎲 隨機任務板</button>
+      <button class="btn ghost" onclick="clearDone()">清除已完成</button>
+    </div>
+    <div id="dailyList"></div>
+    <div class="empty" id="dailyEmpty" style="display:none">今天還沒有任務<br>點「加入任務」或「隨機任務板」開始</div>
+  </div>
+  <div class="page" id="page-log">
+    <div class="section-h">冒險日誌</div>
+    <div id="logList"></div>
+    <div class="empty" id="logEmpty">還沒有完成任何任務</div>
+  </div>
+  <div class="page" id="page-fame">
+    <div class="section-h">技能詳情</div>
+    <div id="fameSkills"></div>
+    <div class="section-h">成就殿堂</div>
+    <div class="ach-grid" id="achGrid"></div>
+  </div>
+  <div class="page" id="page-set">
+    <div class="section-h">資料</div>
+    <button class="btn" style="width:100%;margin-bottom:8px" onclick="exportData()">匯出備份 (JSON)</button>
+    <button class="btn" style="width:100%;margin-bottom:8px" onclick="document.getElementById('importFile').click()">匯入備份</button>
+    <input type="file" id="importFile" accept=".json" style="display:none" onchange="importData(event)" />
+    <button class="btn" style="width:100%;margin-bottom:8px;color:var(--red);border-color:var(--red)" onclick="resetAll()">重置所有資料</button>
+    <p style="font-size:12px;color:var(--muted);margin-top:16px;line-height:1.6">
+      資料存在瀏覽器 LocalStorage，不上傳伺服器。<br>
+      換裝置前請先匯出備份。
+    </p>
+  </div>
+</div>
+<nav class="bnav">
+  <button class="on" data-p="char" onclick="go('char')"><span class="ic">👤</span>角色</button>
+  <button data-p="daily" onclick="go('daily')"><span class="ic">⚔️</span>今日</button>
+  <button data-p="log" onclick="go('log')"><span class="ic">📜</span>日誌</button>
+  <button data-p="fame" onclick="go('fame')"><span class="ic">🏆</span>殿堂</button>
+  <button data-p="set" onclick="go('set')"><span class="ic">⚙️</span>設定</button>
+</nav>
+<div class="overlay" id="avatarOverlay">
+  <div class="sheet">
+    <div class="sheet-title">選擇頭像</div>
+    <div class="avatar-pick" id="avatarPick"></div>
+    <button class="btn" style="width:100%;margin-top:16px" onclick="closeOverlay('avatarOverlay')">完成</button>
+  </div>
+</div>
+<div class="overlay" id="questOverlay">
+  <div class="sheet">
+    <div class="sheet-title">加入今日任務</div>
+    <div id="questPickList"></div>
+    <button class="btn primary" style="width:100%;margin-top:12px" onclick="confirmAddQuests()">加入選中的任務</button>
+    <button class="btn" style="width:100%;margin-top:8px" onclick="closeOverlay('questOverlay')">取消</button>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+<script>
+const SKILLS = [
+  { id: 'finance', name: '財務自由', emoji: '💰', color: '#e8b86d',
+    quests: [
+      { id: 'f1', title: '存入今日份額（或確認節奏）', xp: 25 },
+      { id: 'f2', title: '檢查美債 / 帳戶狀態', xp: 15 },
+      { id: 'f3', title: '記錄本月累積儲蓄', xp: 20 },
+      { id: 'f4', title: '檢視非必要開支 10 分鐘', xp: 15 },
+    ]},
+  { id: 'body', name: '身型鍛鍊', emoji: '🏋️', color: '#5ddea0',
+    quests: [
+      { id: 'b1', title: '完成一次 Gym（60 分鐘+）', xp: 35 },
+      { id: 'b2', title: '完成一次有氧 / 快走', xp: 20 },
+      { id: 'b3', title: '記錄體重', xp: 10 },
+      { id: 'b4', title: '蛋白質達標（自評）', xp: 15 },
+    ]},
+  { id: 'guitar', name: '結他之路', emoji: '🎸', color: '#b794f6',
+    quests: [
+      { id: 'g1', title: '練習 20 分鐘以上', xp: 25 },
+      { id: 'g2', title: '練習 40 分鐘以上', xp: 40 },
+      { id: 'g3', title: '錄一段即興 / 回看', xp: 20 },
+      { id: 'g4', title: '學一個新和弦 / 技巧', xp: 20 },
+      { id: 'g5', title: '嘗試寫一小段旋律', xp: 30 },
+    ]},
+  { id: 'theory', name: '理論深造', emoji: '📚', color: '#7c9cff',
+    quests: [
+      { id: 't1', title: '理論閱讀 / 學習 30 分鐘', xp: 25 },
+      { id: 't2', title: '在個案中有意識應用理論', xp: 30 },
+      { id: 't3', title: '寫下今日反思筆記', xp: 20 },
+      { id: 't4', title: '精讀一個理論概念', xp: 25 },
+    ]},
+  { id: 'side', name: '副業輸出', emoji: '✍️', color: '#ff6b7a',
+    quests: [
+      { id: 's1', title: '完成一次內容分享 / 輸出', xp: 30 },
+      { id: 's2', title: '構思或整理一個活動點子', xp: 20 },
+      { id: 's3', title: '回覆有意義的留言 / 詢問', xp: 15 },
+      { id: 's4', title: '每週輸出規劃 10 分鐘', xp: 15 },
+    ]},
+];
+const AVATARS = ['🐣','🌱','🌿','🌳','🌟','🦊','🐺','🐱','🐼','🦁','🐯','🐲','🧙','⚔️','🛡️','🎯','🔥','💎','🚀','🌙'];
+const ACHIEVEMENTS = [
+  { id: 'first', name: '第一步', icon: '👣', desc: '完成第一個任務', check: s => s.totalQuests >= 1 },
+  { id: 'q10', name: '十次挑戰', icon: '⚔️', desc: '累積完成 10 個任務', check: s => s.totalQuests >= 10 },
+  { id: 'q50', name: '五十里程', icon: '🏅', desc: '累積完成 50 個任務', check: s => s.totalQuests >= 50 },
+  { id: 'q100', name: '百戰勇者', icon: '👑', desc: '累積完成 100 個任務', check: s => s.totalQuests >= 100 },
+  { id: 'streak3', name: '三日堅持', icon: '🔥', desc: '連續 3 天有完成任務', check: s => s.bestStreak >= 3 },
+  { id: 'streak7', name: '一週達人', icon: '⚡', desc: '連續 7 天', check: s => s.bestStreak >= 7 },
+  { id: 'streak21', name: '習慣成型', icon: '💎', desc: '連續 21 天', check: s => s.bestStreak >= 21 },
+  { id: 'streak30', name: '月度王者', icon: '🏆', desc: '連續 30 天', check: s => s.bestStreak >= 30 },
+  { id: 'lv5', name: '新芽覺醒', icon: '🌱', desc: '整體達到 Lv.5', check: s => s.level >= 5 },
+  { id: 'lv10', name: '青葉成蔭', icon: '🌿', desc: '整體達到 Lv.10', check: s => s.level >= 10 },
+  { id: 'lv20', name: '星光閃耀', icon: '🌟', desc: '整體達到 Lv.20', check: s => s.level >= 20 },
+  { id: 'skill5', name: '專精初成', icon: '🎯', desc: '任一技能達到 Lv.5', check: s => Object.values(s.skills).some(x => x.level >= 5) },
+  { id: 'skill10', name: '專精大師', icon: '📜', desc: '任一技能達到 Lv.10', check: s => Object.values(s.skills).some(x => x.level >= 10) },
+  { id: 'allSkills', name: '五維均衡', icon: '⚖️', desc: '五個技能都至少 Lv.3', check: s => Object.values(s.skills).every(x => x.level >= 3) },
+  { id: 'xp500', name: '經驗累積', icon: '✨', desc: '總 XP 達到 500', check: s => s.xp >= 500 },
+  { id: 'xp2000', name: '經驗豐富', icon: '💫', desc: '總 XP 達到 2000', check: s => s.xp >= 2000 },
+  { id: 'finance10', name: '儲蓄種子', icon: '💰', desc: '財務技能達到 Lv.5', check: s => (s.skills.finance?.level || 0) >= 5 },
+  { id: 'body10', name: '身體覺醒', icon: '💪', desc: '身型技能達到 Lv.5', check: s => (s.skills.body?.level || 0) >= 5 },
+];
+function todayKey() {
+  const d = new Date();
+  return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+}
+function defaultState() {
+  const skills = {};
+  SKILLS.forEach(s => { skills[s.id] = { xp: 0, level: 1 }; });
+  return {
+    name: '冒險者', avatar: '🐣', xp: 0, level: 1, totalQuests: 0,
+    currentStreak: 0, bestStreak: 0, lastActive: null, skills,
+    todayQuests: [], log: [], achievements: [],
+  };
+}
+let state = load();
+let pendingPicks = new Set();
+function load() {
+  try {
+    const raw = localStorage.getItem('lifequest_restart_v1');
+    if (raw) return JSON.parse(raw);
+  } catch(e) {}
+  return defaultState();
+}
+function save() { localStorage.setItem('lifequest_restart_v1', JSON.stringify(state)); }
+function xpToNext(lv) { return Math.floor(80 * Math.pow(1.25, lv - 1)); }
+function totalXpNeeded(lv) {
+  let t = 0;
+  for (let i = 1; i < lv; i++) t += xpToNext(i);
+  return t;
+}
+function addSkillXP(skillId, amount) {
+  const sk = state.skills[skillId];
+  if (!sk) return;
+  sk.xp += amount;
+  while (sk.xp >= totalXpNeeded(sk.level + 1)) sk.level++;
+  state.xp += amount;
+  const old = state.level;
+  while (state.xp >= totalXpNeeded(state.level + 1)) state.level++;
+  if (state.level > old) toast('升級！整體 Lv.' + state.level);
+}
+function touchStreak() {
+  const today = todayKey();
+  if (state.lastActive === today) return;
+  const y = new Date(); y.setDate(y.getDate() - 1);
+  const yKey = y.getFullYear() + '-' + String(y.getMonth()+1).padStart(2,'0') + '-' + String(y.getDate()).padStart(2,'0');
+  if (state.lastActive === yKey) state.currentStreak++;
+  else state.currentStreak = 1;
+  state.lastActive = today;
+  if (state.currentStreak > state.bestStreak) state.bestStreak = state.currentStreak;
+}
+function renderChar() {
+  document.getElementById('avatarBtn').textContent = state.avatar;
+  document.getElementById('charName').textContent = state.name;
+  document.getElementById('totalXP').textContent = state.xp;
+  document.getElementById('totalQuests').textContent = state.totalQuests;
+  document.getElementById('streak').textContent = state.currentStreak;
+  document.getElementById('topLevel').textContent = 'Lv.' + state.level;
+  const need = xpToNext(state.level);
+  const have = state.xp - totalXpNeeded(state.level);
+  const pct = Math.min(100, Math.floor(have / need * 100));
+  document.getElementById('overallXPText').textContent = have + ' / ' + need;
+  document.getElementById('overallXPFill').style.width = pct + '%';
+  document.getElementById('skillsGrid').innerHTML = SKILLS.map(s => {
+    const sk = state.skills[s.id];
+    const need = xpToNext(sk.level);
+    const have = sk.xp - totalXpNeeded(sk.level);
+    const pct = Math.min(100, Math.floor(have / need * 100));
+    return `<div class="skill-card" onclick="go('daily')">
+      <div class="skill-head">
+        <span class="skill-emoji">${s.emoji}</span>
+        <span class="skill-name">${s.name}</span>
+        <span class="skill-lv">Lv.${sk.level}</span>
+      </div>
+      <div class="skill-bar"><div class="skill-fill" style="width:${pct}%;background:${s.color}"></div></div>
+    </div>`;
+  }).join('');
+}
+function renderDaily() {
+  const list = document.getElementById('dailyList');
+  const empty = document.getElementById('dailyEmpty');
+  const done = state.todayQuests.filter(q => q.done).length;
+  const total = state.todayQuests.length;
+  document.getElementById('todayCount').textContent = done + ' / ' + total + ' 完成';
+  const pct = total ? Math.round(done / total * 100) : 0;
+  document.getElementById('ringText').textContent = pct + '%';
+  const circ = 2 * Math.PI * 26;
+  document.getElementById('ringFg').style.strokeDashoffset = circ - (circ * pct / 100);
+  if (!total) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = state.todayQuests.map((q, i) => {
+    const sk = SKILLS.find(s => s.id === q.skillId);
+    return `<div class="quest-item ${q.done ? 'done' : ''}">
+      <div class="q-check" onclick="toggleQuest(${i})">${q.done ? '✓' : ''}</div>
+      <div class="q-info">
+        <div class="q-title">${q.title}</div>
+        <div class="q-meta">${sk ? sk.emoji + ' ' + sk.name : ''}</div>
+      </div>
+      <div class="q-xp">+${q.xp} XP</div>
+    </div>`;
+  }).join('');
+}
+function renderLog() {
+  const list = document.getElementById('logList');
+  const empty = document.getElementById('logEmpty');
+  if (!state.log.length) { list.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+  list.innerHTML = state.log.slice().reverse().slice(0, 50).map(l => {
+    const sk = SKILLS.find(s => s.id === l.skillId);
+    return `<div class="log-item">
+      <div class="log-date">${l.date.slice(5)}</div>
+      <div>${sk ? sk.emoji : ''} ${l.title}</div>
+      <div class="log-xp">+${l.xp}</div>
+    </div>`;
+  }).join('');
+}
+function renderFame() {
+  document.getElementById('fameSkills').innerHTML = SKILLS.map(s => {
+    const sk = state.skills[s.id];
+    const need = xpToNext(sk.level);
+    const have = sk.xp - totalXpNeeded(sk.level);
+    const pct = Math.min(100, Math.floor(have / need * 100));
+    return `<div class="quest-item" style="cursor:default;margin-bottom:8px">
+      <div style="font-size:24px">${s.emoji}</div>
+      <div class="q-info">
+        <div class="q-title">${s.name} · Lv.${sk.level}</div>
+        <div class="skill-bar" style="margin-top:6px"><div class="skill-fill" style="width:${pct}%;background:${s.color}"></div></div>
+      </div>
+      <div class="q-xp">${have}/${need}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('achGrid').innerHTML = ACHIEVEMENTS.map(a => {
+    const unlocked = state.achievements.includes(a.id) || a.check(state);
+    if (unlocked && !state.achievements.includes(a.id)) { state.achievements.push(a.id); save(); }
+    return `<div class="ach ${unlocked ? 'unlocked' : ''}" title="${a.desc}">
+      <div class="ach-icon">${a.icon}</div>
+      <div class="ach-name">${a.name}</div>
+    </div>`;
+  }).join('');
+}
+function toggleQuest(i) {
+  const q = state.todayQuests[i];
+  if (!q) return;
+  if (q.done) {
+    q.done = false;
+    state.totalQuests = Math.max(0, state.totalQuests - 1);
+    state.xp = Math.max(0, state.xp - q.xp);
+    const sk = state.skills[q.skillId];
+    if (sk) sk.xp = Math.max(0, sk.xp - q.xp);
+  } else {
+    q.done = true;
+    state.totalQuests++;
+    addSkillXP(q.skillId, q.xp);
+    touchStreak();
+    state.log.push({ date: todayKey(), skillId: q.skillId, title: q.title, xp: q.xp });
+    toast('+' + q.xp + ' XP · ' + (SKILLS.find(s=>s.id===q.skillId)?.name || ''));
+    checkAchievements();
+  }
+  save(); renderDaily(); renderChar();
+}
+function openAddQuest() {
+  pendingPicks = new Set();
+  let html = '';
+  SKILLS.forEach(s => {
+    html += `<div style="font-size:12px;color:var(--muted);margin:12px 0 6px">${s.emoji} ${s.name}</div>`;
+    s.quests.forEach(q => {
+      html += `<div class="quest-pick-item" data-sid="${s.id}" data-qid="${q.id}" data-title="${q.title}" data-xp="${q.xp}" onclick="togglePick(this)">
+        <span>${q.title}</span>
+        <span style="margin-left:auto;color:var(--xp);font-size:12px">+${q.xp}</span>
+      </div>`;
+    });
+  });
+  document.getElementById('questPickList').innerHTML = html;
+  document.getElementById('questOverlay').classList.add('show');
+}
+function togglePick(el) {
+  const key = el.dataset.sid + '|' + el.dataset.qid;
+  if (pendingPicks.has(key)) { pendingPicks.delete(key); el.classList.remove('on'); }
+  else { pendingPicks.add(key); el.classList.add('on'); }
+}
+function confirmAddQuests() {
+  pendingPicks.forEach(key => {
+    const [sid, qid] = key.split('|');
+    const sk = SKILLS.find(s => s.id === sid);
+    const q = sk.quests.find(x => x.id === qid);
+    if (!q) return;
+    if (state.todayQuests.some(t => t.questId === qid && !t.done)) return;
+    state.todayQuests.push({ skillId: sid, questId: qid, title: q.title, xp: q.xp, done: false });
+  });
+  save(); closeOverlay('questOverlay'); renderDaily(); toast('已加入任務');
+}
+function randomBoard() {
+  state.todayQuests = state.todayQuests.filter(q => !q.done);
+  const existing = new Set(state.todayQuests.map(q => q.questId));
+  SKILLS.forEach(s => {
+    const candidates = s.quests.filter(q => !existing.has(q.id));
+    if (!candidates.length) return;
+    const q = candidates[Math.floor(Math.random() * candidates.length)];
+    state.todayQuests.push({ skillId: s.id, questId: q.id, title: q.title, xp: q.xp, done: false });
+  });
+  save(); renderDaily(); go('daily'); toast('已生成隨機任務板');
+}
+function clearDone() {
+  state.todayQuests = state.todayQuests.filter(q => !q.done);
+  save(); renderDaily();
+}
+function openAvatarPicker() {
+  document.getElementById('avatarPick').innerHTML = AVATARS.map(a =>
+    `<div class="avatar-opt ${a === state.avatar ? 'sel' : ''}" onclick="pickAvatar('${a}')">${a}</div>`
+  ).join('');
+  document.getElementById('avatarOverlay').classList.add('show');
+}
+function pickAvatar(a) {
+  state.avatar = a; save(); renderChar();
+  document.querySelectorAll('.avatar-opt').forEach(el => el.classList.toggle('sel', el.textContent === a));
+}
+function editName() {
+  const n = prompt('角色名稱', state.name);
+  if (n && n.trim()) { state.name = n.trim().slice(0, 12); save(); renderChar(); }
+}
+function checkAchievements() {
+  let neu = null;
+  ACHIEVEMENTS.forEach(a => {
+    if (!state.achievements.includes(a.id) && a.check(state)) {
+      state.achievements.push(a.id); neu = a;
+    }
+  });
+  if (neu) { save(); setTimeout(() => toast('🏅 解鎖成就：' + neu.name), 400); }
+}
+function go(p) {
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.bnav button').forEach(el => el.classList.remove('on'));
+  document.getElementById('page-' + p).classList.add('active');
+  document.querySelector(`.bnav button[data-p="${p}"]`).classList.add('on');
+  if (p === 'char') renderChar();
+  if (p === 'daily') renderDaily();
+  if (p === 'log') renderLog();
+  if (p === 'fame') renderFame();
+}
+function closeOverlay(id) { document.getElementById(id).classList.remove('show'); }
+function toast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2000);
+}
+function exportData() {
+  const blob = new Blob([JSON.stringify(state, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = '重新出發_LifeQuest_' + todayKey() + '.json';
+  a.click(); toast('已匯出');
+}
+function importData(e) {
+  const f = e.target.files[0]; if (!f) return;
+  const r = new FileReader();
+  r.onload = ev => {
+    try {
+      const d = JSON.parse(ev.target.result);
+      if (!d.skills) throw 0;
+      state = d; save(); renderChar(); renderDaily(); toast('匯入成功');
+    } catch(err) { toast('檔案格式錯誤'); }
+  };
+  r.readAsText(f);
+}
+function resetAll() {
+  if (!confirm('確定重置所有進度？')) return;
+  state = defaultState(); save(); renderChar(); renderDaily(); toast('已重置');
+}
+renderChar();
+renderDaily();
+</script>
+</body>
+</html>
